@@ -38,9 +38,9 @@ const ProjectsOverview: React.FC = () => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div>
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-3">
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Overall Progress
               </h4>
@@ -52,22 +52,22 @@ const ProjectsOverview: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3 text-center">
-              <p className="text-xs text-gray-600 dark:text-gray-400">Total</p>
+            <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {totalProjects}
               </p>
             </div>
-            <div className="bg-accent-50 dark:bg-accent-900/20 rounded-lg p-3 text-center">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="bg-accent-50 dark:bg-accent-900/20 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                 In Progress
               </p>
               <p className="text-lg font-semibold text-accent-700 dark:text-accent-400">
                 {inProgressProjects}
               </p>
             </div>
-            <div className="bg-secondary-50 dark:bg-secondary-900/20 rounded-lg p-3 text-center">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="bg-secondary-50 dark:bg-secondary-900/20 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                 Planning
               </p>
               <p className="text-lg font-semibold text-secondary-700 dark:text-secondary-400">
@@ -76,7 +76,7 @@ const ProjectsOverview: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Recent Projects
             </h4>
@@ -87,12 +87,12 @@ const ProjectsOverview: React.FC = () => {
                 to={`/projects/${project.id}`}
                 className="block"
               >
-                <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-800/50 transition-all duration-200">
                   <div>
                     <h5 className="font-medium text-gray-900 dark:text-gray-100">
                       {project.title}
                     </h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {project.status.charAt(0).toUpperCase() +
                         project.status.slice(1)}{' '}
                       • {project.progress}%
@@ -107,13 +107,15 @@ const ProjectsOverview: React.FC = () => {
       </CardContent>
 
       <CardFooter>
-        <Button
-          variant="ghost"
-          className="w-full justify-center"
-          rightIcon={<ArrowRight size={16} />}
-        >
-          View All Projects
-        </Button>
+        <Link to="/projects" className="w-full">
+          <Button
+            variant="ghost"
+            className="w-full justify-center"
+            rightIcon={<ArrowRight size={16} />}
+          >
+            View All Projects
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );

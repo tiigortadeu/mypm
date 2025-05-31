@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AppLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const toggleCollapse = () => setSidebarCollapsed(prev => !prev);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
@@ -23,13 +25,26 @@ const AppLayout: React.FC = () => {
         </button>
       </div>
 
+      {/* Desktop collapse toggle */}
+      <div className="fixed top-4 left-4 z-40 hidden md:block">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleCollapse}
+          className="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </motion.button>
+      </div>
+
       {/* Sidebar for mobile with overlay */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
+              animate={{ opacity: 0.3 }}
               exit={{ opacity: 0 }}
               onClick={() => setSidebarOpen(false)}
               className="fixed inset-0 bg-black z-30 md:hidden"
@@ -47,16 +62,20 @@ const AppLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar - always visible */}
-      <div className="hidden md:block md:w-64 flex-shrink-0">
-        <Sidebar />
-      </div>
+      {/* Desktop sidebar - responsive width */}
+      <motion.div
+        animate={{ width: sidebarCollapsed ? 80 : 256 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className="hidden md:block flex-shrink-0"
+      >
+        <Sidebar collapsed={sidebarCollapsed} />
+      </motion.div>
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <Outlet />
         </main>
       </div>

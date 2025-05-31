@@ -197,7 +197,7 @@ const TasksPage: React.FC = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  className="flex items-center justify-between p-4 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-800/50 transition-all duration-200"
                 >
                   <div className="flex items-center space-x-3">
                     <button
@@ -286,7 +286,7 @@ const TasksPage: React.FC = () => {
               <div className="flex justify-center space-x-3">
                 {(statusFilter !== 'all' || priorityFilter !== 'all') && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => {
                       setStatusFilter('all');
                       setPriorityFilter('all');

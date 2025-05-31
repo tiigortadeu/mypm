@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -10,6 +10,7 @@ import {
 import { useProject } from '../../contexts/ProjectContext';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
+import { Link } from 'react-router-dom';
 
 const TasksOverview: React.FC = () => {
   const { tasks } = useProject();
@@ -46,36 +47,36 @@ const TasksOverview: React.FC = () => {
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-success-50 dark:bg-success-900/20 rounded-lg p-3 text-center">
-              <CheckCircle className="h-5 w-5 mx-auto mb-1 text-success-500 dark:text-success-400" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="bg-success-50 dark:bg-success-900/20 rounded-xl p-4 text-center">
+              <CheckCircle className="h-5 w-5 mx-auto mb-2 text-success-500 dark:text-success-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                 Completed
               </p>
               <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {completedTasks.length}
               </p>
             </div>
-            <div className="bg-accent-50 dark:bg-accent-900/20 rounded-lg p-3 text-center">
-              <Clock className="h-5 w-5 mx-auto mb-1 text-accent-500 dark:text-accent-400" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="bg-accent-50 dark:bg-accent-900/20 rounded-xl p-4 text-center">
+              <Clock className="h-5 w-5 mx-auto mb-2 text-accent-500 dark:text-accent-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                 In Progress
               </p>
               <p className="text-lg font-semibold text-accent-700 dark:text-accent-400">
                 {inProgressTasks.length}
               </p>
             </div>
-            <div className="bg-warning-50 dark:bg-warning-900/20 rounded-lg p-3 text-center">
-              <AlertTriangle className="h-5 w-5 mx-auto mb-1 text-warning-500 dark:text-warning-400" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">Urgent</p>
+            <div className="bg-warning-50 dark:bg-warning-900/20 rounded-xl p-4 text-center">
+              <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-warning-500 dark:text-warning-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Urgent</p>
               <p className="text-lg font-semibold text-warning-700 dark:text-warning-400">
                 {urgentTasks.length}
               </p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Due Soon
             </h4>
@@ -84,7 +85,7 @@ const TasksOverview: React.FC = () => {
               tasksDueSoon.slice(0, 4).map(task => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800"
+                  className="flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-800/50 transition-all duration-200"
                 >
                   <div className="flex items-center space-x-3">
                     <div
@@ -100,7 +101,7 @@ const TasksOverview: React.FC = () => {
                       <h5 className="font-medium text-gray-900 dark:text-gray-100">
                         {task.title}
                       </h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Due {formatDate(task.dueDate || '')}
                       </p>
                     </div>
@@ -121,7 +122,7 @@ const TasksOverview: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 No tasks due soon
               </div>
             )}
@@ -130,9 +131,15 @@ const TasksOverview: React.FC = () => {
       </CardContent>
 
       <CardFooter>
-        <Button variant="ghost" className="w-full justify-center">
-          View All Tasks
-        </Button>
+        <Link to="/tasks" className="w-full">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-center"
+            rightIcon={<ArrowRight size={16} />}
+          >
+            View All Tasks
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );

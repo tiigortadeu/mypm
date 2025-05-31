@@ -1,5 +1,6 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   Card,
   CardHeader,
@@ -9,26 +10,44 @@ import {
 import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Badge from '../components/ui/Badge';
+import TabNavigation, { TabItem } from '../components/ui/TabNavigation';
+import ProjectOverviewTab from '../components/project/ProjectOverviewTab';
+import ProjectTasksMilestonesTab from '../components/project/ProjectTasksMilestonesTab';
+import ProjectRisksTab from '../components/project/ProjectRisksTab';
+import ProjectDocumentsTab from '../components/project/ProjectDocumentsTab';
+import ProjectAnalyticsTab from '../components/project/ProjectAnalyticsTab';
+import ProjectFinancialTab from '../components/project/ProjectFinancialTab';
 import { useProject } from '../contexts/ProjectContext';
 import {
   Calendar,
   ListTodo,
-  Users,
+  Target,
   BarChart2,
   Clock,
   AlertTriangle,
   CheckCircle,
   ArrowRight,
   Edit,
+  FileText,
+  TrendingUp,
+  DollarSign,
+  Shield,
+  Star,
+  Eye,
+  FolderOpen,
 } from 'lucide-react';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { projects, tasks, stories } = useProject();
+  const { projects, tasks, milestones } = useProject();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // URL state management for active tab
+  const activeTab = searchParams.get('tab') || 'overview';
 
   const project = projects.find(p => p.id === id);
   const projectTasks = tasks.filter(t => t.projectId === id);
-  const projectStories = stories.filter(s => s.projectId === id);
+  const projectMilestones = milestones.filter(m => m.projectId === id);
 
   // Calculate task statistics
   const completedTasks = projectTasks.filter(
@@ -37,318 +56,263 @@ const ProjectDetail: React.FC = () => {
   const totalTasks = projectTasks.length;
   const taskProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
+  // Calculate milestone statistics
+  const completedMilestones = projectMilestones.filter(
+    m => m.status === 'completed'
+  ).length;
+  const totalMilestones = projectMilestones.length;
+  const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+
   // Calculate urgent tasks
   const urgentTasks = projectTasks.filter(
     t => t.priority === 'urgent' && t.status !== 'completed'
   );
 
+  // Calculate overdue milestones
+  const overdueMilestones = projectMilestones.filter(m => {
+    if (m.status === 'completed') return false;
+    return new Date(m.dueDate) < new Date();
+  });
+
+  // Handle tab change
+  const handleTabChange = (tabId: string) => {
+    setSearchParams({ tab: tabId });
+  };
+
+  // Tab configuration
+  const tabs: TabItem[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: Eye,
+    },
+    {
+      id: 'tasks-milestones',
+      label: 'Tasks & Milestones',
+      icon: ListTodo,
+      badge: totalTasks > 0 ? totalTasks : undefined,
+    },
+    {
+      id: 'risks',
+      label: 'Risks & Issues',
+      icon: Shield,
+      badge: project?.risks?.length || undefined,
+    },
+    {
+      id: 'documents',
+      label: 'Documents & Assets',
+      icon: FileText,
+      badge: project?.documents?.length || undefined,
+    },
+    {
+      id: 'financial',
+      label: 'Financeiro',
+      icon: DollarSign,
+      badge: project?.financialTransactions?.length || undefined,
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics & Reports',
+      icon: BarChart2,
+    },
+  ];
+
   // Format date
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   };
 
+  // Get milestone status color
+  const getMilestoneStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'in-progress':
+        return 'primary';
+      case 'delayed':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   if (!project) {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
-          Project not found
+          Projeto não encontrado
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          The project you're looking for doesn't exist or has been deleted.
+          O projeto que você está procurando não existe ou foi deletado.
         </p>
         <Link to="/">
-          <Button variant="primary">Return to Dashboard</Button>
+          <Button variant="primary">Voltar ao Dashboard</Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Project header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl md:text-3xl font-display font-semibold text-gray-900 dark:text-gray-50">
-              {project.title}
-            </h1>
-            <Badge
-              variant={
-                project.status === 'completed'
-                  ? 'success'
-                  : project.status === 'in-progress'
-                    ? 'primary'
-                    : project.status === 'on-hold'
-                      ? 'warning'
-                      : 'default'
-              }
-            >
-              {project.status.replace('-', ' ')}
-            </Badge>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {project.description}
-          </p>
-          <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600 dark:text-gray-400">
-            <div className="flex items-center">
-              <Calendar className="mr-1 h-4 w-4" />
-              <span>Created: {formatDate(project.createdAt)}</span>
-            </div>
-            {project.dueDate && (
-              <div className="flex items-center">
-                <Clock className="mr-1 h-4 w-4" />
-                <span>Due: {formatDate(project.dueDate)}</span>
-              </div>
-            )}
-          </div>
+    <div className="max-w-7xl mx-auto space-y-4">
+      {/* Header - Compact */}
+      <div className="text-center">
+        <h1 className="text-2xl font-display font-semibold text-gray-900 dark:text-gray-50 mb-1">
+          {project.title}
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {project.description}
+        </p>
+      </div>
+
+      {/* Metrics Cards - Inline Format */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-wrap justify-center gap-4 md:gap-6"
+      >
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+          <TrendingUp className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {project.progress}%
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Progress
+          </span>
         </div>
 
-        <div className="flex space-x-3">
-          <Button variant="outline" leftIcon={<Edit size={16} />}>
-            Edit Project
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+          <ListTodo className="h-4 w-4 text-accent-600 dark:text-accent-400" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {completedTasks}/{totalTasks}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Tasks
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+          <Target className="h-4 w-4 text-secondary-600 dark:text-secondary-400" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {completedMilestones}/{totalMilestones}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Milestones
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+          <CheckCircle className={`h-4 w-4 ${
+            project.status === 'completed' ? 'text-success-600 dark:text-success-400' :
+            project.status === 'in-progress' ? 'text-primary-600 dark:text-primary-400' :
+            project.status === 'on-hold' ? 'text-warning-600 dark:text-warning-400' :
+            'text-gray-600 dark:text-gray-400'
+          }`} />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {project.status === 'in-progress' ? 'Em Progresso' :
+             project.status === 'completed' ? 'Concluído' :
+             project.status === 'on-hold' ? 'Em Pausa' : 'Planejamento'}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Status
+          </span>
+        </div>
+
+        {project.budget && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+            <DollarSign className="h-4 w-4 text-success-600 dark:text-success-400" />
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              R$ {project.budget.toLocaleString('pt-BR')}
+            </span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              Orçamento
+            </span>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Tab Navigation with Action Buttons */}
+      <div className="flex justify-between items-center">
+        <TabNavigation
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" leftIcon={<Edit size={16} />}>
+            Editar Projeto
           </Button>
-          <Button variant="primary" leftIcon={<ListTodo size={16} />}>
-            Add Task
+          <Button variant="primary" size="sm" leftIcon={<Target size={16} />}>
+            Adicionar Milestone
           </Button>
         </div>
       </div>
 
-      {/* Progress overview */}
-      <Card>
-        <CardContent className="py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Overall Progress
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-                  {project.progress}%
-                </div>
-                <ProgressBar
-                  value={project.progress}
-                  size="lg"
-                  className="flex-1"
-                />
-              </div>
-            </div>
+      {/* Tab Content Container */}
+      <div className="min-h-[300px]">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <ProjectOverviewTab
+            project={project}
+            taskProgress={taskProgress}
+            milestoneProgress={milestoneProgress}
+            completedTasks={completedTasks}
+            totalTasks={totalTasks}
+            completedMilestones={completedMilestones}
+            totalMilestones={totalMilestones}
+            urgentTasks={urgentTasks}
+            overdueMilestones={overdueMilestones}
+            formatDate={formatDate}
+          />
+        )}
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Tasks
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-                  {completedTasks}/{totalTasks}
-                </div>
-                <ProgressBar
-                  value={taskProgress}
-                  size="lg"
-                  variant="success"
-                  className="flex-1"
-                />
-              </div>
-            </div>
+        {/* Tasks & Milestones Tab */}
+        {activeTab === 'tasks-milestones' && (
+          <ProjectTasksMilestonesTab
+            projectId={id!}
+            projectTasks={projectTasks}
+            projectMilestones={projectMilestones}
+            formatDate={formatDate}
+            getMilestoneStatusColor={getMilestoneStatusColor}
+          />
+        )}
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                User Stories
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-                  {projectStories.length}
-                </div>
-                <div className="flex-1 flex items-center">
-                  <Users className="h-5 w-5 text-secondary-500" />
-                </div>
-              </div>
-            </div>
+        {/* Risks & Issues Tab */}
+        {activeTab === 'risks' && (
+          <ProjectRisksTab project={project} />
+        )}
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Urgent Tasks
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-                  {urgentTasks.length}
-                </div>
-                <div className="flex-1 flex items-center">
-                  <AlertTriangle
-                    className={`h-5 w-5 ${urgentTasks.length > 0 ? 'text-warning-500' : 'text-gray-400'}`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Documents & Assets Tab */}
+        {activeTab === 'documents' && (
+          <ProjectDocumentsTab 
+            project={project}
+            formatDate={formatDate}
+          />
+        )}
 
-      {/* Project sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Tasks section */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Tasks</CardTitle>
-              <Link to={`/projects/${id}/tasks`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rightIcon={<ArrowRight size={16} />}
-                >
-                  View All
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
+        {/* Financial Tab */}
+        {activeTab === 'financial' && (
+          <ProjectFinancialTab
+            project={project}
+            formatDate={formatDate}
+          />
+        )}
 
-          <CardContent>
-            {projectTasks.length > 0 ? (
-              <div className="space-y-3">
-                {projectTasks.slice(0, 5).map(task => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800"
-                  >
-                    <div className="flex items-center space-x-3">
-                      {task.status === 'completed' ? (
-                        <CheckCircle className="h-5 w-5 text-success-500" />
-                      ) : (
-                        <div
-                          className={`h-3 w-3 rounded-full ${
-                            task.priority === 'high' ||
-                            task.priority === 'urgent'
-                              ? 'bg-warning-500'
-                              : task.priority === 'medium'
-                                ? 'bg-accent-500'
-                                : 'bg-success-500'
-                          }`}
-                        />
-                      )}
-                      <div>
-                        <h5
-                          className={`font-medium ${task.status === 'completed' ? 'text-gray-500 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'}`}
-                        >
-                          {task.title}
-                        </h5>
-                        {task.dueDate && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Due {formatDate(task.dueDate)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Badge
-                      variant={
-                        task.status === 'completed'
-                          ? 'success'
-                          : task.priority === 'urgent'
-                            ? 'error'
-                            : task.priority === 'high'
-                              ? 'warning'
-                              : task.priority === 'medium'
-                                ? 'accent'
-                                : 'default'
-                      }
-                    >
-                      {task.status === 'completed'
-                        ? 'completed'
-                        : task.priority}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <ListTodo className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                <p>No tasks yet. Add your first task to get started.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* User Stories section */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>User Stories</CardTitle>
-              <Link to={`/projects/${id}/stories`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rightIcon={<ArrowRight size={16} />}
-                >
-                  View All
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            {projectStories.length > 0 ? (
-              <div className="space-y-3">
-                {projectStories.slice(0, 5).map(story => (
-                  <div
-                    key={story.id}
-                    className="p-3 rounded-lg border border-gray-100 dark:border-gray-800"
-                  >
-                    <div className="flex justify-between">
-                      <h5 className="font-medium text-gray-900 dark:text-gray-100">
-                        {story.title}
-                      </h5>
-                      <Badge
-                        variant={
-                          story.status === 'implemented' ||
-                          story.status === 'validated'
-                            ? 'success'
-                            : story.status === 'implementing'
-                              ? 'primary'
-                              : story.status === 'planned'
-                                ? 'accent'
-                                : 'default'
-                        }
-                      >
-                        {story.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {story.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                <p>No user stories yet. Add your first story to get started.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Analytics & Reports Tab */}
+        {activeTab === 'analytics' && (
+          <ProjectAnalyticsTab
+            project={project}
+            projectTasks={projectTasks}
+            projectMilestones={projectMilestones}
+            formatDate={formatDate}
+          />
+        )}
       </div>
-
-      {/* Analytics section */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Project Timeline</CardTitle>
-            <BarChart2 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400">
-              Timeline visualization will appear here
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

@@ -16,9 +16,9 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 md:p-6',
+        'bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 md:p-8',
         hoverable &&
-          'transition-all duration-200 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700',
+          'transition-all duration-200 hover:shadow-md',
         className
       )}
       {...props}
@@ -37,7 +37,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   children,
   className,
 }) => {
-  return <div className={cn('mb-4', className)}>{children}</div>;
+  return <div className={cn('mb-6', className)}>{children}</div>;
 };
 
 interface CardTitleProps {
@@ -103,7 +103,7 @@ export const CardFooter: React.FC<CardFooterProps> = ({
   return (
     <div
       className={cn(
-        'mt-4 pt-4 border-t border-gray-100 dark:border-gray-800',
+        'mt-6 pt-6',
         className
       )}
     >

@@ -5,7 +5,6 @@ type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'accent'
-  | 'outline'
   | 'ghost'
   | 'link';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -36,7 +35,7 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+        'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2',
         {
           // Variants
           'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500':
@@ -45,9 +44,7 @@ const Button: React.FC<ButtonProps> = ({
             variant === 'secondary',
           'bg-accent-500 hover:bg-accent-600 text-white focus:ring-accent-400':
             variant === 'accent',
-          'bg-transparent border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500':
-            variant === 'outline',
-          'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500':
+          'bg-transparent hover:bg-gray-100/80 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300 focus:ring-gray-500':
             variant === 'ghost',
           'bg-transparent p-0 h-auto text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline focus:ring-0':
             variant === 'link',
@@ -70,17 +67,17 @@ const Button: React.FC<ButtonProps> = ({
     >
       {isLoading && (
         <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current\"
-          xmlns="http://www.w3.org/2000/svg\"
-          fill="none\"
+          className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
           viewBox="0 0 24 24"
         >
           <circle
-            className="opacity-25\"
-            cx="12\"
-            cy="12\"
-            r="10\"
-            stroke="currentColor\"
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
             strokeWidth="4"
           ></circle>
           <path
