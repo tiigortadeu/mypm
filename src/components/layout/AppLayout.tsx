@@ -15,7 +15,7 @@ const AppLayout: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       {/* Mobile sidebar toggle */}
-      <div className="fixed bottom-4 right-4 z-40 md:hidden">
+      <div className="fixed bottom-4 left-4 z-40 md:hidden">
         <button
           onClick={toggleSidebar}
           className="btn p-3 rounded-full bg-primary-600 text-white shadow-lg"

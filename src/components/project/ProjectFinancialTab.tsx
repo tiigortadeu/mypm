@@ -3,27 +3,19 @@ import {
   DollarSign, 
   TrendingUp, 
   TrendingDown,
-  Plus,
+  Search,
   Filter,
-  Download,
   Edit,
   Trash2,
   Calendar,
   BarChart2,
-  PieChart,
-  CreditCard,
   Receipt,
+  User,
+  CreditCard,
 } from 'lucide-react';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '../ui/Card';
+import { motion } from 'framer-motion';
 import Button from '../ui/Button';
-import ProgressBar from '../ui/ProgressBar';
-import Badge from '../ui/Badge';
-import { Project, FinancialTransaction, FinancialTransactionType, IncomeCategory, ExpenseCategory } from '../../types';
+import { Project, FinancialTransaction, FinancialTransactionType } from '../../types';
 
 interface ProjectFinancialTabProps {
   project: Project;
@@ -85,11 +77,10 @@ const ProjectFinancialTab: React.FC<ProjectFinancialTabProps> = ({
   // Get transactions from project or use mock data
   const transactions = project.financialTransactions || mockTransactions;
 
-  // State for filters and modal
+  // State for filters
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [periodFilter, setPeriodFilter] = useState<string>('all');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Calculate financial analytics
   const analytics = useMemo(() => {
@@ -99,32 +90,13 @@ const ProjectFinancialTab: React.FC<ProjectFinancialTabProps> = ({
     const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     const netProfit = totalIncome - totalExpenses;
-    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
-
-    // Budget analysis
     const budgetUsed = project.budget ? (totalExpenses / project.budget) * 100 : 0;
-    const budgetRemaining = project.budget ? project.budget - totalExpenses : 0;
-
-    // Category breakdowns
-    const incomeByCategory = income.reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const expensesByCategory = expenses.reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
 
     return {
       totalIncome,
       totalExpenses,
       netProfit,
-      profitMargin,
       budgetUsed,
-      budgetRemaining,
-      incomeByCategory,
-      expensesByCategory,
       transactionCount: transactions.length,
     };
   }, [transactions, project.budget]);
@@ -132,12 +104,18 @@ const ProjectFinancialTab: React.FC<ProjectFinancialTabProps> = ({
   // Filter transactions
   const filteredTransactions = useMemo(() => {
     return transactions.filter(transaction => {
+      const searchMatch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         getCategoryLabel(transaction.category).toLowerCase().includes(searchTerm.toLowerCase());
       const typeMatch = typeFilter === 'all' || transaction.type === typeFilter;
       const categoryMatch = categoryFilter === 'all' || transaction.category === categoryFilter;
-      // For simplicity, we'll skip period filtering in this implementation
-      return typeMatch && categoryMatch;
+      return searchMatch && typeMatch && categoryMatch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, typeFilter, categoryFilter]);
+  }, [transactions, searchTerm, typeFilter, categoryFilter]);
+
+  // Get unique categories
+  const categories = useMemo(() => {
+    return [...new Set(transactions.map(t => t.category))];
+  }, [transactions]);
 
   // Get category label
   const getCategoryLabel = (category: string): string => {
@@ -159,9 +137,20 @@ const ProjectFinancialTab: React.FC<ProjectFinancialTabProps> = ({
     return categoryLabels[category] || category;
   };
 
-  // Get type color
-  const getTypeColor = (type: FinancialTransactionType): string => {
-    return type === 'income' ? 'success' : 'error';
+  // Get transaction icon
+  const getTransactionIcon = (type: FinancialTransactionType, category: string) => {
+    if (type === 'income') {
+      return TrendingUp;
+    }
+    switch (category) {
+      case 'personnel':
+        return User;
+      case 'software':
+      case 'equipment':
+        return CreditCard;
+      default:
+        return TrendingDown;
+    }
   };
 
   // Format currency
@@ -172,382 +161,266 @@ const ProjectFinancialTab: React.FC<ProjectFinancialTabProps> = ({
     }).format(amount);
   };
 
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('all');
+    setCategoryFilter('all');
+  };
+
   return (
     <div className="space-y-6">
-      {/* Financial Metrics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receitas Totais</p>
-                <p className="text-2xl font-bold text-success-600 dark:text-success-400">
-                  {formatCurrency(analytics.totalIncome)}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-success-500" />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {transactions.filter(t => t.type === 'income').length} transações
-            </p>
-          </CardContent>
-        </Card>
+      {/* Financial Metrics - Inline Format */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-wrap justify-center gap-4 md:gap-6"
+      >
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Receitas totais: ${formatCurrency(analytics.totalIncome)}`}
+        >
+          <TrendingUp className="h-4 w-4 text-success-600 dark:text-success-400" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {formatCurrency(analytics.totalIncome)}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Receitas
+          </span>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Despesas Totais</p>
-                <p className="text-2xl font-bold text-error-600 dark:text-error-400">
-                  {formatCurrency(analytics.totalExpenses)}
-                </p>
-              </div>
-              <TrendingDown className="h-8 w-8 text-error-500" />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {transactions.filter(t => t.type === 'expense').length} transações
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Despesas totais: ${formatCurrency(analytics.totalExpenses)}`}
+        >
+          <TrendingDown className="h-4 w-4 text-error-600 dark:text-error-400" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {formatCurrency(analytics.totalExpenses)}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Despesas
+          </span>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Lucro Líquido</p>
-                <p className={`text-2xl font-bold ${
-                  analytics.netProfit >= 0 
-                    ? 'text-success-600 dark:text-success-400' 
-                    : 'text-error-600 dark:text-error-400'
-                }`}>
-                  {formatCurrency(analytics.netProfit)}
-                </p>
-              </div>
-              <DollarSign className={`h-8 w-8 ${
-                analytics.netProfit >= 0 ? 'text-success-500' : 'text-error-500'
-              }`} />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Margem: {analytics.profitMargin.toFixed(1)}%
-            </p>
-          </CardContent>
-        </Card>
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Lucro líquido: ${formatCurrency(analytics.netProfit)}`}
+        >
+          <DollarSign className={`h-4 w-4 ${
+            analytics.netProfit >= 0 
+              ? 'text-success-600 dark:text-success-400' 
+              : 'text-error-600 dark:text-error-400'
+          }`} />
+          <span className={`text-sm font-semibold ${
+            analytics.netProfit >= 0 
+              ? 'text-success-600 dark:text-success-400' 
+              : 'text-error-600 dark:text-error-400'
+          }`}>
+            {formatCurrency(analytics.netProfit)}
+          </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Lucro
+          </span>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Orçamento</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {project.budget ? formatCurrency(project.budget) : 'N/A'}
-                </p>
-              </div>
-              <BarChart2 className="h-8 w-8 text-primary-500" />
-            </div>
-            {project.budget && (
-              <>
-                <ProgressBar 
-                  value={Math.min(analytics.budgetUsed, 100)} 
-                  variant={analytics.budgetUsed > 100 ? 'error' : analytics.budgetUsed > 80 ? 'warning' : 'success'}
-                  size="sm" 
-                  className="mt-2" 
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {analytics.budgetUsed.toFixed(1)}% utilizado
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {project.budget && (
+          <motion.div 
+            className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Orçamento usado: ${analytics.budgetUsed.toFixed(1)}%`}
+          >
+            <BarChart2 className={`h-4 w-4 ${
+              analytics.budgetUsed > 100 ? 'text-error-600 dark:text-error-400' :
+              analytics.budgetUsed > 80 ? 'text-warning-600 dark:text-warning-400' :
+              'text-primary-600 dark:text-primary-400'
+            }`} />
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {analytics.budgetUsed.toFixed(1)}%
+            </span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              Orçamento
+            </span>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Search and Filter Section - Inline, no cards */}
+      <div className="bg-gray-50/30 dark:bg-gray-800/20 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar transações..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-transparent border-0 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all duration-200 placeholder-gray-500"
+            />
+          </div>
+          
+          {/* Type Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="bg-transparent border-0 rounded-lg px-3 py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all duration-200"
+            >
+              <option value="all">Todos os Tipos</option>
+              <option value="income">Receitas</option>
+              <option value="expense">Despesas</option>
+            </select>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-transparent border-0 rounded-lg px-3 py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all duration-200"
+            >
+              <option value="all">Todas as Categorias</option>
+              {categories.map(category => (
+                <option key={category} value={category}>
+                  {getCategoryLabel(category)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Transactions List */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Receipt className="h-5 w-5" />
-                    Transações Financeiras
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {analytics.transactionCount} transações total
-                  </p>
-                </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Plus size={16} />}
-                  onClick={() => setIsAddModalOpen(true)}
+      {/* Transactions List - Minimalista */}
+      {filteredTransactions.length > 0 ? (
+        <div className="space-y-2">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {filteredTransactions.length} {filteredTransactions.length === 1 ? 'transação' : 'transações'}
+            </p>
+          </div>
+
+          {/* Transaction Items */}
+          <div className="space-y-1">
+            {filteredTransactions.map((transaction) => {
+              const IconComponent = getTransactionIcon(transaction.type, transaction.category);
+              
+              return (
+                <div
+                  key={transaction.id}
+                  className="group flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/50"
                 >
-                  Adicionar
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-500" />
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Tipo:</span>
-                  <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="text-xs bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-300"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="income">Receitas</option>
-                    <option value="expense">Despesas</option>
-                  </select>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Categoria:</span>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="text-xs bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-300"
-                  >
-                    <option value="all">Todas</option>
-                    <option value="client-payment">Pagamento do Cliente</option>
-                    <option value="grant">Subsídio/Grant</option>
-                    <option value="milestone-bonus">Bônus de Milestone</option>
-                    <option value="personnel">Pessoal</option>
-                    <option value="software">Software</option>
-                    <option value="equipment">Equipamentos</option>
-                    <option value="marketing">Marketing</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Transactions List */}
-              {filteredTransactions.length > 0 ? (
-                <div className="space-y-3">
-                  {filteredTransactions.map(transaction => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-800/50 transition-all duration-200"
-                    >
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <div className={`p-2 rounded-lg ${
-                          transaction.type === 'income' 
-                            ? 'bg-success-100 dark:bg-success-900/30' 
-                            : 'bg-error-100 dark:bg-error-900/30'
-                        }`}>
-                          {transaction.type === 'income' ? (
-                            <TrendingUp className={`h-4 w-4 text-success-600 dark:text-success-400`} />
-                          ) : (
-                            <TrendingDown className={`h-4 w-4 text-error-600 dark:text-error-400`} />
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-                            {transaction.description}
-                          </h5>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant={getTypeColor(transaction.type) as any} className="text-xs">
-                              {getCategoryLabel(transaction.category)}
-                            </Badge>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatDate(transaction.date)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className={`font-semibold ${
-                            transaction.type === 'income' 
-                              ? 'text-success-600 dark:text-success-400' 
-                              : 'text-error-600 dark:text-error-400'
-                          }`}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                            title="Editar transação"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </button>
-                          <button
-                            className="p-1 rounded text-gray-400 hover:text-error-600 dark:hover:text-error-400"
-                            title="Excluir transação"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Receipt className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                  <p className="text-sm">
-                    Nenhuma transação encontrada para os filtros selecionados.
-                  </p>
-                  <Button 
-                    variant="primary" 
-                    size="sm" 
-                    className="mt-3" 
-                    leftIcon={<Plus size={16} />}
-                    onClick={() => setIsAddModalOpen(true)}
-                  >
-                    Adicionar Primeira Transação
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Financial Summary & Charts */}
-        <div className="space-y-6">
-          {/* Category Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Despesas por Categoria
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(analytics.expensesByCategory).map(([category, amount]) => {
-                  const percentage = analytics.totalExpenses > 0 
-                    ? (amount / analytics.totalExpenses) * 100 
-                    : 0;
-                  
-                  return (
-                    <div key={category} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {getCategoryLabel(category)}
-                        </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {formatCurrency(amount)}
-                        </span>
-                      </div>
-                      <ProgressBar 
-                        value={percentage} 
-                        variant="error"
-                        size="sm" 
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {percentage.toFixed(1)}% do total
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Budget Status */}
-          {project.budget && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5" />
-                  Status do Orçamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Orçamento Total</span>
-                    <span className="font-medium">{formatCurrency(project.budget)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Gastos</span>
-                    <span className="font-medium text-error-600 dark:text-error-400">
-                      {formatCurrency(analytics.totalExpenses)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Restante</span>
-                    <span className={`font-medium ${
-                      analytics.budgetRemaining >= 0 
+                  {/* Icon */}
+                  <div className="flex-shrink-0">
+                    <IconComponent className={`h-5 w-5 ${
+                      transaction.type === 'income' 
                         ? 'text-success-600 dark:text-success-400' 
                         : 'text-error-600 dark:text-error-400'
-                    }`}>
-                      {formatCurrency(analytics.budgetRemaining)}
-                    </span>
+                    }`} />
                   </div>
-
-                  <ProgressBar 
-                    value={Math.min(analytics.budgetUsed, 100)} 
-                    variant={analytics.budgetUsed > 100 ? 'error' : analytics.budgetUsed > 80 ? 'warning' : 'success'}
-                    size="md" 
-                  />
                   
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    {analytics.budgetUsed.toFixed(1)}% do orçamento utilizado
-                  </p>
+                  {/* Transaction Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                        {transaction.description}
+                      </h4>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        {getCategoryLabel(transaction.category)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(transaction.date)}</span>
+                      </div>
+                      <span className={`font-medium ${
+                        transaction.type === 'income' 
+                          ? 'text-success-600 dark:text-success-400' 
+                          : 'text-error-600 dark:text-error-400'
+                      }`}>
+                        {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Editar transação"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                      title="Excluir transação"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Export Options */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatórios</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="ghost" 
-                leftIcon={<Download size={16} />}
-                className="w-full justify-start"
-              >
-                Exportar PDF
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                leftIcon={<Download size={16} />}
-                className="w-full justify-start"
-              >
-                Exportar Excel
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                leftIcon={<BarChart2 size={16} />}
-                className="w-full justify-start"
-              >
-                Gerar Gráfico
-              </Button>
-            </CardContent>
-          </Card>
+              );
+            })}
+          </div>
         </div>
-      </div>
-
-      {/* Add Transaction Modal Placeholder */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Adicionar Transação</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Modal de formulário será implementado na próxima iteração.
+      ) : (
+        /* Empty State */
+        <div className="bg-gray-50/30 dark:bg-gray-800/20 rounded-lg p-12">
+          <div className="text-center">
+            <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              {transactions.length > 0 
+                ? 'Nenhuma transação corresponde aos filtros'
+                : 'Nenhuma transação financeira'
+              }
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              {transactions.length > 0 
+                ? 'Tente ajustar os filtros ou termo de busca para encontrar as transações que procura.'
+                : 'Comece adicionando transações financeiras ao projeto para acompanhar receitas e despesas.'
+              }
             </p>
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsAddModalOpen(false)}
-              className="w-full"
-            >
-              Fechar
-            </Button>
+            
+            {transactions.length > 0 ? (
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+              >
+                Limpar Filtros
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Use o botão flutuante no canto inferior direito para adicionar transações
+                </p>
+                <div className="text-xs text-gray-400 dark:text-gray-500">
+                  Categorias: Receitas, Despesas, Pessoal, Software, Equipamentos
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

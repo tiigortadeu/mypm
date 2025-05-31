@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -11,6 +11,10 @@ import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Badge from '../components/ui/Badge';
 import TabNavigation, { TabItem } from '../components/ui/TabNavigation';
+import FloatingActionButton from '../components/ui/FloatingActionButton';
+import CreateTaskModal from '../components/ui/CreateTaskModal';
+import EditProjectModal from '../components/ui/EditProjectModal';
+import UploadDocumentModal from '../components/ui/UploadDocumentModal';
 import ProjectOverviewTab from '../components/project/ProjectOverviewTab';
 import ProjectTasksMilestonesTab from '../components/project/ProjectTasksMilestonesTab';
 import ProjectRisksTab from '../components/project/ProjectRisksTab';
@@ -35,6 +39,10 @@ import {
   Star,
   Eye,
   FolderOpen,
+  Plus,
+  Flag,
+  Upload,
+  Receipt,
 } from 'lucide-react';
 
 const ProjectDetail: React.FC = () => {
@@ -44,6 +52,11 @@ const ProjectDetail: React.FC = () => {
   
   // URL state management for active tab
   const activeTab = searchParams.get('tab') || 'overview';
+
+  // Modal states
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const project = projects.find(p => p.id === id);
   const projectTasks = tasks.filter(t => t.projectId === id);
@@ -76,7 +89,152 @@ const ProjectDetail: React.FC = () => {
 
   // Handle tab change
   const handleTabChange = (tabId: string) => {
-    setSearchParams({ tab: tabId });
+    // Parse tabId to extract tab and any query parameters
+    const [tab, queryString] = tabId.includes('?') ? tabId.split('?') : [tabId, ''];
+    
+    // Create new search params preserving existing ones
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('tab', tab);
+    
+    // Add any additional query parameters from the tabId
+    if (queryString) {
+      const queryParams = new URLSearchParams(queryString);
+      queryParams.forEach((value, key) => {
+        newParams.set(key, value);
+      });
+    }
+    
+    setSearchParams(newParams);
+  };
+
+  // Modal handlers
+  const handleOpenCreateTaskModal = () => {
+    setIsCreateTaskModalOpen(true);
+  };
+
+  const handleCloseCreateTaskModal = () => {
+    setIsCreateTaskModalOpen(false);
+  };
+
+  const handleOpenEditProjectModal = () => {
+    setIsEditProjectModalOpen(true);
+  };
+
+  const handleCloseEditProjectModal = () => {
+    setIsEditProjectModalOpen(false);
+  };
+
+  const handleUploadDocument = () => {
+    setIsUploadModalOpen(true);
+  };
+
+  const handleCloseUploadModal = () => {
+    setIsUploadModalOpen(false);
+  };
+
+  // Quick Action handlers
+  const handleCreateMilestone = () => {
+    // TODO: Implementar modal de criação de milestone no futuro
+    alert('Funcionalidade de criação de milestone será implementada em breve!');
+  };
+
+  const handleCreateTransaction = () => {
+    // TODO: Implementar modal de criação de transação
+    alert('Funcionalidade de transação financeira será implementada em breve!');
+  };
+
+  // Risk management handlers
+  const handleCreateRisk = () => {
+    // TODO: Implementar modal de criação de risco
+    alert('Funcionalidade de criação de risco será implementada em breve!');
+  };
+
+  const handleCreateIssue = () => {
+    // TODO: Implementar modal de criação de issue
+    alert('Funcionalidade de criação de issue será implementada em breve!');
+  };
+
+  const handleCreateDependency = () => {
+    // TODO: Implementar modal de criação de dependência
+    alert('Funcionalidade de criação de dependência será implementada em breve!');
+  };
+
+  // Contextual actions for each tab
+  const getFabActions = (): { id: string; label: string; icon: React.ElementType; onClick: () => void; variant?: 'primary' | 'secondary' | 'accent' | 'ghost'; }[] => {
+    switch (activeTab) {
+      case 'overview':
+        return [{
+          id: 'edit-project',
+          label: 'Editar Projeto',
+          icon: Edit,
+          onClick: handleOpenEditProjectModal,
+          variant: 'ghost',
+        }];
+      
+      case 'tasks-milestones':
+        return [
+          {
+            id: 'create-task',
+            label: 'Nova Tarefa',
+            icon: Plus,
+            onClick: handleOpenCreateTaskModal,
+            variant: 'primary',
+          },
+          {
+            id: 'create-milestone',
+            label: 'Adicionar Milestone',
+            icon: Target,
+            onClick: handleCreateMilestone,
+            variant: 'secondary',
+          }
+        ];
+      
+      case 'risks':
+        return [
+          {
+            id: 'create-risk',
+            label: 'Adicionar Risco',
+            icon: AlertTriangle,
+            onClick: handleCreateRisk,
+            variant: 'primary',
+          },
+          {
+            id: 'create-dependency',
+            label: 'Nova Dependência',
+            icon: Shield,
+            onClick: handleCreateDependency,
+            variant: 'secondary',
+          },
+          {
+            id: 'create-issue',
+            label: 'Reportar Issue',
+            icon: Flag,
+            onClick: handleCreateIssue,
+            variant: 'accent',
+          }
+        ];
+      
+      case 'documents':
+        return [{
+          id: 'upload-document',
+          label: 'Upload Documento',
+          icon: Upload,
+          onClick: handleUploadDocument,
+          variant: 'primary',
+        }];
+      
+      case 'financial':
+        return [{
+          id: 'create-transaction',
+          label: 'Nova Transação',
+          icon: Receipt,
+          onClick: handleCreateTransaction,
+          variant: 'primary',
+        }];
+      
+      default:
+        return [];
+    }
   };
 
   // Tab configuration
@@ -158,7 +316,7 @@ const ProjectDetail: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto space-y-4 relative">
       {/* Header - Compact */}
       <div className="text-center">
         <h1 className="text-2xl font-display font-semibold text-gray-900 dark:text-gray-50 mb-1">
@@ -176,7 +334,14 @@ const ProjectDetail: React.FC = () => {
         transition={{ delay: 0.1 }}
         className="flex flex-wrap justify-center gap-4 md:gap-6"
       >
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Progresso do projeto: ${project.progress}%`}
+        >
           <TrendingUp className="h-4 w-4 text-primary-600 dark:text-primary-400" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {project.progress}%
@@ -184,9 +349,16 @@ const ProjectDetail: React.FC = () => {
           <span className="text-xs text-gray-600 dark:text-gray-400">
             Progress
           </span>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Tarefas: ${completedTasks} de ${totalTasks} concluídas`}
+        >
           <ListTodo className="h-4 w-4 text-accent-600 dark:text-accent-400" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {completedTasks}/{totalTasks}
@@ -194,9 +366,16 @@ const ProjectDetail: React.FC = () => {
           <span className="text-xs text-gray-600 dark:text-gray-400">
             Tasks
           </span>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+        <motion.div 
+          className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Milestones: ${completedMilestones} de ${totalMilestones} concluídos`}
+        >
           <Target className="h-4 w-4 text-secondary-600 dark:text-secondary-400" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             {completedMilestones}/{totalMilestones}
@@ -204,9 +383,20 @@ const ProjectDetail: React.FC = () => {
           <span className="text-xs text-gray-600 dark:text-gray-400">
             Milestones
           </span>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+        <motion.div 
+          className={`flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          tabIndex={0}
+          role="button"
+          aria-label={`Status do projeto: ${
+            project.status === 'in-progress' ? 'Em Progresso' :
+            project.status === 'completed' ? 'Concluído' :
+            project.status === 'on-hold' ? 'Em Pausa' : 'Planejamento'
+          }`}
+        >
           <CheckCircle className={`h-4 w-4 ${
             project.status === 'completed' ? 'text-success-600 dark:text-success-400' :
             project.status === 'in-progress' ? 'text-primary-600 dark:text-primary-400' :
@@ -221,10 +411,17 @@ const ProjectDetail: React.FC = () => {
           <span className="text-xs text-gray-600 dark:text-gray-400">
             Status
           </span>
-        </div>
+        </motion.div>
 
         {project.budget && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
+          <motion.div 
+            className="flex items-center gap-2 px-3 py-2 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg transition-all duration-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Orçamento: R$ ${project.budget.toLocaleString('pt-BR')}`}
+          >
             <DollarSign className="h-4 w-4 text-success-600 dark:text-success-400" />
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               R$ {project.budget.toLocaleString('pt-BR')}
@@ -232,25 +429,17 @@ const ProjectDetail: React.FC = () => {
             <span className="text-xs text-gray-600 dark:text-gray-400">
               Orçamento
             </span>
-          </div>
+          </motion.div>
         )}
       </motion.div>
 
-      {/* Tab Navigation with Action Buttons */}
-      <div className="flex justify-between items-center">
+      {/* Tab Navigation */}
+      <div className="flex justify-center">
         <TabNavigation
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={handleTabChange}
         />
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" leftIcon={<Edit size={16} />}>
-            Editar Projeto
-          </Button>
-          <Button variant="primary" size="sm" leftIcon={<Target size={16} />}>
-            Adicionar Milestone
-          </Button>
-        </div>
       </div>
 
       {/* Tab Content Container */}
@@ -282,6 +471,7 @@ const ProjectDetail: React.FC = () => {
             projectMilestones={projectMilestones}
             formatDate={formatDate}
             getMilestoneStatusColor={getMilestoneStatusColor}
+            focus={searchParams.get('focus') as 'tasks' | 'milestones' | null}
           />
         )}
 
@@ -316,6 +506,36 @@ const ProjectDetail: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Floating Action Button - Contextual actions for all tabs */}
+      {getFabActions().length > 0 && (
+        <FloatingActionButton
+          actions={getFabActions()}
+          className="z-[100]"
+        />
+      )}
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={handleCloseCreateTaskModal}
+        mode="create"
+        task={undefined}
+      />
+
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        isOpen={isEditProjectModalOpen}
+        onClose={handleCloseEditProjectModal}
+        project={project}
+      />
+
+      {/* Upload Document Modal */}
+      <UploadDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={handleCloseUploadModal}
+        projectId={id!}
+      />
     </div>
   );
 };

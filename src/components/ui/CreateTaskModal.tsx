@@ -20,7 +20,7 @@ interface FormData {
   description: string;
   projectId: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'todo' | 'in-progress' | 'review' | 'completed';
+  status: 'todo' | 'in-progress' | 'review' | 'completed' | 'blocked';
   dueDate: string;
   estimatedHours: string;
 }
@@ -200,9 +200,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
           projectId: formData.projectId || projects[0]?.id || '',
           priority: formData.priority,
           status: 'todo',
-          createdAt: new Date().toISOString(),
           dueDate: formData.dueDate || undefined,
           estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
+          tags: [],
+          dependencies: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
 
         addTask(newTask);
@@ -263,234 +266,241 @@ const TaskModal: React.FC<TaskModalProps> = ({
       onFullscreenClick={mode === 'edit' && task ? () => handleFullscreenClick(task.id) : undefined}
       className="text-left"
     >
-      <div className="p-8 space-y-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          
-          {/* Título proeminente - Hero Section */}
-          <div className="space-y-2">
-            <input
-              id="task-title"
-              type="text"
-              value={formData.title}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, title: e.target.value }));
-                if (errors.title) {
-                  setErrors(prev => ({ ...prev, title: undefined }));
-                }
-              }}
-              onBlur={handleTitleBlur}
-              placeholder={mode === 'edit' ? 'Editar nome da tarefa...' : 'Nome da tarefa...'}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              className={cn(
-                "w-full text-3xl font-light bg-transparent border-0 focus:outline-none focus:ring-0 py-2 transition-all duration-200",
-                "placeholder:text-gray-400 dark:placeholder:text-gray-500",
-                "text-gray-900 dark:text-gray-100",
-                errors.title && "text-red-600 dark:text-red-400"
-              )}
-              disabled={isSubmitting}
-            />
-            {errors.title && (
-              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                <AlertCircle className="h-4 w-4" />
-                <span>{errors.title}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Descrição expansível */}
-          <div className="space-y-4">
-            <label htmlFor="task-description" className="block text-sm font-medium text-gray-600 dark:text-gray-400">
-              Descrição
-            </label>
-            <div className={containerClasses}>
-              <div className="p-4">
-                <AutoResizeTextarea
-                  id="task-description"
-                  value={formData.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
-                  placeholder="Descreva os detalhes da tarefa..."
-                  minHeight={120}
-                  className="bg-transparent"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Divisão sutil */}
-          <div className="h-px bg-gray-200/50 dark:bg-gray-700/50 my-8"></div>
-
-          {/* Campos principais organizados */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Projeto */}
-            <div className="space-y-3">
-              <label htmlFor="task-project" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Projeto
-              </label>
-              <div className={containerClasses}>
-                <select
-                  id="task-project"
-                  value={formData.projectId}
-                  onChange={(e) => handleFieldChange('projectId', e.target.value)}
-                  className={cn(
-                    selectBaseClasses,
-                    errors.projectId && errorClasses
-                  )}
-                  disabled={isSubmitting}
-                >
-                  <option value="">Selecionar projeto (opcional)</option>
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.projectId && (
-                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{errors.projectId}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Prioridade */}
-            <div className="space-y-3">
-              <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Prioridade
-              </label>
-              <div className={containerClasses}>
-                <select
-                  id="task-priority"
-                  value={formData.priority}
-                  onChange={(e) => handleFieldChange('priority', e.target.value as FormData['priority'])}
-                  className={selectBaseClasses}
-                  disabled={isSubmitting}
-                >
-                  <option value="low">Baixa</option>
-                  <option value="medium">Média</option>
-                  <option value="high">Alta</option>
-                  <option value="urgent">Urgente</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Metadados adicionais */}
-          <div className={cn(containerClasses, "p-6 space-y-6")}>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
-              Informações Adicionais
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex flex-col h-[80vh]">
+        {/* Área de conteúdo com scroll */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
               
-              {/* Status - Only show in edit mode */}
-              {mode === 'edit' && (
-                <div className="space-y-3">
-                  <label htmlFor="task-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status
-                  </label>
-                  <select
-                    id="task-status"
-                    value={formData.status}
-                    onChange={(e) => handleFieldChange('status', e.target.value as FormData['status'])}
-                    className={cn(metadataInputClasses, "appearance-none cursor-pointer")}
-                    disabled={isSubmitting}
-                  >
-                    <option value="todo">A Fazer</option>
-                    <option value="in-progress">Em Andamento</option>
-                    <option value="review">Revisão</option>
-                    <option value="completed">Concluído</option>
-                  </select>
+              {/* Título proeminente - Hero Section */}
+              <div className="space-y-2">
+                <input
+                  id="task-title"
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, title: e.target.value }));
+                    if (errors.title) {
+                      setErrors(prev => ({ ...prev, title: undefined }));
+                    }
+                  }}
+                  onBlur={handleTitleBlur}
+                  placeholder={mode === 'edit' ? 'Editar nome da tarefa...' : 'Nome da tarefa...'}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  className={cn(
+                    "w-full text-3xl font-light bg-transparent border-0 focus:outline-none focus:ring-0 py-2 transition-all duration-200",
+                    "placeholder:text-gray-400 dark:placeholder:text-gray-500",
+                    "text-gray-900 dark:text-gray-100",
+                    errors.title && "text-red-600 dark:text-red-400"
+                  )}
+                  disabled={isSubmitting}
+                />
+                {errors.title && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.title}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Descrição expansível */}
+              <div className="space-y-4">
+                <label htmlFor="task-description" className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Descrição
+                </label>
+                <div className={containerClasses}>
+                  <div className="p-4">
+                    <AutoResizeTextarea
+                      id="task-description"
+                      value={formData.description}
+                      onChange={(e) => handleFieldChange('description', e.target.value)}
+                      placeholder="Descreva os detalhes da tarefa..."
+                      minHeight={120}
+                      className="bg-transparent"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
-              )}
-
-              {/* Data limite */}
-              <div className="space-y-3">
-                <label htmlFor="task-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Data limite
-                </label>
-                <input
-                  id="task-date"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => handleFieldChange('dueDate', e.target.value)}
-                  className={cn(
-                    metadataInputClasses,
-                    "[color-scheme:dark]",
-                    errors.dueDate && errorClasses
-                  )}
-                  disabled={isSubmitting}
-                />
-                {errors.dueDate && (
-                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>{errors.dueDate}</span>
-                  </div>
-                )}
               </div>
 
-              {/* Horas estimadas */}
-              <div className="space-y-3">
-                <label htmlFor="task-hours" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Horas estimadas
-                </label>
-                <input
-                  id="task-hours"
-                  type="number"
-                  min="0"
-                  max="999"
-                  step="0.5"
-                  value={formData.estimatedHours}
-                  onChange={(e) => handleFieldChange('estimatedHours', e.target.value)}
-                  placeholder="Ex: 8"
-                  className={cn(
-                    metadataInputClasses,
-                    "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                    errors.estimatedHours && errorClasses
-                  )}
-                  disabled={isSubmitting}
-                />
-                {errors.estimatedHours && (
-                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>{errors.estimatedHours}</span>
+              {/* Divisão sutil */}
+              <div className="h-px bg-gray-200/50 dark:bg-gray-700/50 my-8"></div>
+
+              {/* Campos principais organizados */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Projeto */}
+                <div className="space-y-3">
+                  <label htmlFor="task-project" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Projeto
+                  </label>
+                  <div className={containerClasses}>
+                    <select
+                      id="task-project"
+                      value={formData.projectId}
+                      onChange={(e) => handleFieldChange('projectId', e.target.value)}
+                      className={cn(
+                        selectBaseClasses,
+                        errors.projectId && errorClasses
+                      )}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Selecionar projeto (opcional)</option>
+                      {projects.map(project => (
+                        <option key={project.id} value={project.id}>
+                          {project.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  {errors.projectId && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{errors.projectId}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Prioridade */}
+                <div className="space-y-3">
+                  <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Prioridade
+                  </label>
+                  <div className={containerClasses}>
+                    <select
+                      id="task-priority"
+                      value={formData.priority}
+                      onChange={(e) => handleFieldChange('priority', e.target.value as FormData['priority'])}
+                      className={selectBaseClasses}
+                      disabled={isSubmitting}
+                    >
+                      <option value="low">Baixa</option>
+                      <option value="medium">Média</option>
+                      <option value="high">Alta</option>
+                      <option value="urgent">Urgente</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+
+              {/* Metadados adicionais */}
+              <div className={cn(containerClasses, "p-6 space-y-6")}>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  Informações Adicionais
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  
+                  {/* Status - Only show in edit mode */}
+                  {mode === 'edit' && (
+                    <div className="space-y-3">
+                      <label htmlFor="task-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Status
+                      </label>
+                      <select
+                        id="task-status"
+                        value={formData.status}
+                        onChange={(e) => handleFieldChange('status', e.target.value as FormData['status'])}
+                        className={cn(metadataInputClasses, "appearance-none cursor-pointer")}
+                        disabled={isSubmitting}
+                      >
+                        <option value="todo">A Fazer</option>
+                        <option value="in-progress">Em Andamento</option>
+                        <option value="review">Revisão</option>
+                        <option value="completed">Concluído</option>
+                        <option value="blocked">Bloqueado</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Data limite */}
+                  <div className="space-y-3">
+                    <label htmlFor="task-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Data limite
+                    </label>
+                    <input
+                      id="task-date"
+                      type="date"
+                      value={formData.dueDate}
+                      onChange={(e) => handleFieldChange('dueDate', e.target.value)}
+                      className={cn(
+                        metadataInputClasses,
+                        "[color-scheme:dark]",
+                        errors.dueDate && errorClasses
+                      )}
+                      disabled={isSubmitting}
+                    />
+                    {errors.dueDate && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{errors.dueDate}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Horas estimadas */}
+                  <div className="space-y-3">
+                    <label htmlFor="task-hours" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Horas estimadas
+                    </label>
+                    <input
+                      id="task-hours"
+                      type="number"
+                      min="0"
+                      max="999"
+                      step="0.5"
+                      value={formData.estimatedHours}
+                      onChange={(e) => handleFieldChange('estimatedHours', e.target.value)}
+                      placeholder="Ex: 8"
+                      className={cn(
+                        metadataInputClasses,
+                        "placeholder:text-gray-500 dark:placeholder:text-gray-400",
+                        errors.estimatedHours && errorClasses
+                      )}
+                      disabled={isSubmitting}
+                    />
+                    {errors.estimatedHours && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{errors.estimatedHours}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Botões fixos na parte inferior */}
+        <div className="border-t border-gray-200/20 dark:border-gray-700/20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm p-6">
+          <form onSubmit={handleSubmit}>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                {isSubmitting 
+                  ? (mode === 'edit' ? 'Salvando...' : 'Criando...') 
+                  : (mode === 'edit' ? 'Salvar Alterações' : 'Criar Tarefa')
+                }
+              </Button>
             </div>
-          </div>
-
-          {/* Action Buttons - Minimalista */}
-          <div className="flex gap-4 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 py-3"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={isSubmitting}
-              disabled={isSubmitting}
-              className="flex-1 py-3"
-            >
-              {isSubmitting 
-                ? (mode === 'edit' ? 'Salvando...' : 'Criando...') 
-                : (mode === 'edit' ? 'Salvar Alterações' : 'Criar Tarefa')
-              }
-            </Button>
-          </div>
-
-        </form>
+          </form>
+        </div>
       </div>
     </Modal>
   );

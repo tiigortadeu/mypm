@@ -21,8 +21,8 @@ interface AutoResizeTextareaProps extends React.TextareaHTMLAttributes<HTMLTextA
  * @param onHeightChange - Callback chamado quando altura muda
  */
 const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
-  minHeight = 40,
-  maxHeight = 200,
+  minHeight = 120,
+  maxHeight = 400,
   isFullscreen = false,
   debounceMs = 0,
   className = '',
@@ -32,9 +32,10 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   ...props
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useAutoResize(textareaRef, minHeight, maxHeight);
+  
+  const effectiveMaxHeight = isFullscreen ? undefined : maxHeight;
+  useAutoResize(textareaRef, minHeight, effectiveMaxHeight);
 
-  // Chamar callback quando altura mudar
   useEffect(() => {
     onHeightChange?.(textareaRef.current?.scrollHeight || 0);
   }, [onHeightChange]);
@@ -46,10 +47,20 @@ const AutoResizeTextarea: React.FC<AutoResizeTextareaProps> = ({
   return (
     <textarea
       ref={textareaRef}
-      className={`resize-none overflow-hidden ${className}`}
+      className={cn(
+        'resize-none w-full border-0 focus:outline-none focus:ring-0 transition-all duration-200',
+        'text-gray-900 dark:text-gray-100',
+        'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+        'leading-relaxed',
+        className
+      )}
       value={value}
       onChange={handleChange}
-      style={{ minHeight: `${minHeight}px`, maxHeight: `${maxHeight}px` }}
+      style={{ 
+        minHeight: `${minHeight}px`, 
+        maxHeight: effectiveMaxHeight ? `${effectiveMaxHeight}px` : 'none',
+        overflow: effectiveMaxHeight ? 'auto' : 'hidden'
+      }}
       {...props}
     />
   );

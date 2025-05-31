@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Project, Milestone, Task, Risk, TaskComment } from '../types';
+import { Project, Milestone, Task, Risk, TaskComment, Document } from '../types';
 
 interface ProjectContextType {
   projects: Project[];
@@ -18,6 +18,10 @@ interface ProjectContextType {
   recoverNotes: (taskId: string) => string | null;
   addComment: (taskId: string, content: string) => void;
   calculateDynamicProgress: (projectId: string) => number;
+  // Document actions
+  addDocument: (projectId: string, document: Omit<Document, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateDocument: (documentId: string, updates: Partial<Document>) => void;
+  deleteDocument: (documentId: string) => void;
 }
 
 const initialProjects: Project[] = [
@@ -322,6 +326,45 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return Math.round((completedTasks.length / projectTasks.length) * 100);
   };
 
+  const addDocument = (projectId: string, document: Omit<Document, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newDocument: Document = {
+      ...document,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setProjects(prev =>
+      prev.map(project =>
+        project.id === projectId 
+          ? { ...project, documents: [...(project.documents || []), newDocument] }
+          : project
+      )
+    );
+  };
+
+  const updateDocument = (documentId: string, updates: Partial<Document>) => {
+    setProjects(prev =>
+      prev.map(project => ({
+        ...project,
+        documents: (project.documents || []).map(doc =>
+          doc.id === documentId 
+            ? { ...doc, ...updates, updatedAt: new Date().toISOString() }
+            : doc
+        )
+      }))
+    );
+  };
+
+  const deleteDocument = (documentId: string) => {
+    setProjects(prev =>
+      prev.map(project => ({
+        ...project,
+        documents: (project.documents || []).filter(doc => doc.id !== documentId)
+      }))
+    );
+  };
+
   return (
     <ProjectContext.Provider
       value={{
@@ -341,6 +384,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         recoverNotes,
         addComment,
         calculateDynamicProgress,
+        addDocument,
+        updateDocument,
+        deleteDocument,
       }}
     >
       {children}
