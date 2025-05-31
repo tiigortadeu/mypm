@@ -61,10 +61,10 @@ const ProjectMilestonesTab: React.FC<ProjectMilestonesTabProps> = ({
             className="text-sm bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-300"
           >
             <option value="all">Todos</option>
-            <option value="planned">Planejado</option>
+            <option value="planning">Planejado</option>
             <option value="in-progress">Em Progresso</option>
             <option value="completed">Concluído</option>
-            <option value="delayed">Atrasado</option>
+            <option value="overdue">Atrasado</option>
           </select>
         </div>
       </div>
@@ -112,7 +112,7 @@ const ProjectMilestonesTab: React.FC<ProjectMilestonesTabProps> = ({
                     <Badge variant={getMilestoneStatusColor(milestone.status) as any} className="px-3 py-1">
                       {milestone.status === 'completed' ? 'Concluído' :
                        milestone.status === 'in-progress' ? 'Em Progresso' :
-                       milestone.status === 'delayed' ? 'Atrasado' : 'Planejado'}
+                       milestone.status === 'overdue' ? 'Atrasado' : 'Planejado'}
                     </Badge>
                   </div>
 

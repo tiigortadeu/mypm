@@ -268,6 +268,9 @@ const ProjectDetail: React.FC = () => {
             urgentTasks={urgentTasks}
             overdueMilestones={overdueMilestones}
             formatDate={formatDate}
+            projectTasks={projectTasks}
+            projectMilestones={projectMilestones}
+            handleTabChange={handleTabChange}
           />
         )}
 
